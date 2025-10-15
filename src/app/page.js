@@ -1,13 +1,15 @@
 'use client'
+import Image from 'next/image';
 import { useEffect, useRef } from 'react';
 import useSWRInfinite from 'swr/infinite';
 
 export default function Home() {
+  const PAGE_SIZE = 20;
   const observerTarget = useRef(null);
 
   const getKey = (pageIndex, previousPageData) => {
     if (previousPageData && !previousPageData.next) return null;
-    return `https://pokeapi.co/api/v2/pokemon?limit=20&offset=${pageIndex * 20}`;
+    return `https://pokeapi.co/api/v2/pokemon?limit=20&offset=${pageIndex * PAGE_SIZE}`;
   };
 
   const fetcher = async (url) => {
@@ -90,10 +92,12 @@ export default function Home() {
             key={pokemon.id}
             className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow p-4 flex flex-col items-center"
           >
-            <img
+            <Image
               src={pokemon.sprites.front_default}
               alt={pokemon.name}
-              className="w-24 h-24"
+              width={500}
+              height={500}
+              // className="w-24 h-24"
             />
             
             <div className="text-center mt-2">
