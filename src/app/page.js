@@ -1,35 +1,39 @@
 'use client'
-import { useState, useEffect, useRef } from 'react';  
+import { useEffect, useRef } from 'react';
 import useSWRInfinite from 'swr/infinite';
 
 export default function Home() {
   const observerTarget = useRef(null);
 
-  // getKey を追加（新規）
   const getKey = (pageIndex, previousPageData) => {
     if (previousPageData && !previousPageData.next) return null;
     return `https://pokeapi.co/api/v2/pokemon?limit=20&offset=${pageIndex * 20}`;
   };
 
-  // fetcher
   const fetcher = async (url) => {
     const response = await fetch(url);
     const data = await response.json();
     
-    const pokemonDetails = await Promise.all(
-      data.results.map(async (pokemon) => {
-        const res = await fetch(pokemon.url);
-        return res.json();
-      })
-    );
+    // シンプルに必要な情報だけ
+    const pokemons = data.results.map((pokemon) => {
+      const id = parseInt(pokemon.url.split('/').slice(-2, -1)[0]);
+      
+      return {
+        id: id,
+        name: pokemon.name,
+        sprites: {
+          front_default: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`
+        }
+        // types は削除（不要）
+      };
+    });
     
     return {
-      pokemons: pokemonDetails,
+      pokemons: pokemons,
       next: data.next
     };
   };
-  
-  // useWRInfinite
+
   const { data, size, setSize, isLoading } = useSWRInfinite(
     getKey,
     fetcher,
@@ -40,18 +44,13 @@ export default function Home() {
   );
 
   const pokemons = data ? data.flatMap(page => page.pokemons) : [];
-  
-  //まだデータがあるのか最終状態を取得
   const hasMore = data && data[data.length - 1]?.next;
-  
-  //読み込み中でまだデータがある時に
+
   const loadMore = () => {
-    if(!isLoading && hasMore){
-      setSize(size + 1);//sizeを増やすと次のページを取得する
+    if (!isLoading && hasMore) {
+      setSize(size + 1);
     }
   };
-
-
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -81,7 +80,7 @@ export default function Home() {
           ポケモン図鑑 🎮
         </h1>
         <p className="text-center text-gray-600">
-          下にスクロールすると次々とポケモンが表示されます
+          {pokemons.length} 匹表示中
         </p>
       </div>
 
@@ -102,16 +101,7 @@ export default function Home() {
               <h3 className="font-bold text-lg capitalize">{pokemon.name}</h3>
             </div>
             
-            <div className="flex gap-2 mt-2">
-              {pokemon.types.map((type) => (
-                <span
-                  key={type.type.name}
-                  className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800"
-                >
-                  {type.type.name}
-                </span>
-              ))}
-            </div>
+            {/* タイプ表示部分を完全削除 */}
           </div>
         ))}
       </div>
@@ -119,17 +109,17 @@ export default function Home() {
       {isLoading && (
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-          <p className="mt-4 text-gray-600">ポケモンを探しています...</p>
+          <p className="mt-4 text-gray-600">読み込み中...</p>
         </div>
       )}
 
-      {!hasMore && (
+      {!hasMore && !isLoading && (
         <div className="text-center py-8">
           <p className="text-gray-600">すべてのポケモンを表示しました！</p>
         </div>
       )}
 
-      <div ref={observerTarget} className="h-10"></div>
+      <div ref={observerTarget} className="h-10" />
     </div>
   );
 }
